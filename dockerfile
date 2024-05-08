@@ -1,6 +1,6 @@
 # Use an official NVIDIA CUDA image as the base image
 # This image includes CUDA and cuDNN libraries
-FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
+FROM nvidia/cuda:11.7.1-devel-ubuntu22.04
 
 # Set the working directory in the container
 WORKDIR /usr/src/app
@@ -41,10 +41,10 @@ RUN git clone https://github.com/opencv/opencv.git /opt/opencv && \
 
 # Checkout the latest version or specific tag
 WORKDIR /opt/opencv
-RUN git checkout master
+RUN git checkout tags/4.9.0
 
 WORKDIR /opt/opencv_contrib
-RUN git checkout master
+RUN git checkout tags/4.9.0
 
 # Create a build directory
 WORKDIR /opt/opencv
