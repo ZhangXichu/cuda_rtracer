@@ -1,6 +1,6 @@
 # Use an official NVIDIA CUDA image as the base image
 # This image includes CUDA and cuDNN libraries
-FROM nvidia/cuda:11.7.1-devel-ubuntu22.04
+FROM nvidia/cuda:12.0.1-cudnn8-devel-ubuntu22.04
 
 # Set the working directory in the container
 WORKDIR /usr/src/app
@@ -35,39 +35,8 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     libavfilter-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Download OpenCV and OpenCV_contrib
-RUN git clone https://github.com/opencv/opencv.git /opt/opencv && \
-    git clone https://github.com/opencv/opencv_contrib.git /opt/opencv_contrib
-
-# Checkout the latest version or specific tag
-WORKDIR /opt/opencv
-RUN git checkout tags/4.9.0
-
-WORKDIR /opt/opencv_contrib
-RUN git checkout tags/4.9.0
-
-# Create a build directory
-WORKDIR /opt/opencv
-RUN mkdir build
-
-# Configure the build with CMake
-WORKDIR /opt/opencv/build
-RUN cmake -D CMAKE_BUILD_TYPE=RELEASE \
-    -D CMAKE_INSTALL_PREFIX=/usr/local \
-    -D WITH_CUDA=ON \
-    -D CUDA_ARCH_BIN="6.1" \
-    -D ENABLE_FAST_MATH=1 \
-    -D CUDA_FAST_MATH=1 \
-    -D WITH_CUBLAS=1 \
-    -D OPENCV_EXTRA_MODULES_PATH=/opt/opencv_contrib/modules \
-    -D BUILD_EXAMPLES=ON ..
-
-# Compile and install
-RUN make -j$(nproc)
-RUN make install
-
-# Set the working directory back to the root
-WORKDIR /
+# Set the working directory 
+WORKDIR /mnt/workspace
 
 # Set environment variables
 # To make sure the binaries and libraries of CUDA toolkit are in PATH
