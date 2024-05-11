@@ -12,10 +12,12 @@ include_directories(${CUDA_INCLUDE_DIRS})
 message(STATUS "CMAKE_SOURCE_DIR: ${CMAKE_SOURCE_DIR}")
 message(STATUS "CUDA_INCLUDE_DIRS: ${CUDA_INCLUDE_DIRS}")
 
-add_executable(rtracer 
-                src/main.cu)
+add_executable(rtracer)
 
 target_include_directories(rtracer PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_sources(rtracer 
                 PRIVATE 
-                ${CMAKE_SOURCE_DIR}/include/ray.hpp)
+                src/main.cu
+                src/matrix.cu)
+
+set_target_properties(rtracer PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
