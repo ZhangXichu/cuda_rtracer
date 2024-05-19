@@ -18,6 +18,21 @@ target_include_directories(rtracer PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_sources(rtracer 
                 PRIVATE 
                 src/main.cu
-                src/matrix.cu)
+                src/matrix.cu
+                src/sphere.cu
+                src/hittable_list.cu)
 
 set_target_properties(rtracer PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
+target_compile_options(rtracer PRIVATE
+    $<$<COMPILE_LANGUAGE:CXX>:$<$<CONFIG:DEBUG>:-g>>
+    $<$<COMPILE_LANGUAGE:CUDA>:$<$<CONFIG:DEBUG>:-G -g -lineinfo>>
+    $<$<CONFIG:RELEASE>:-O3>
+)
+
+set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
+
+target_link_libraries(rtracer PRIVATE
+    $<$<CONFIG:DEBUG>:>
+    $<$<CONFIG:RELEASE>:>
+)
