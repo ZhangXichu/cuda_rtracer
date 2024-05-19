@@ -4,6 +4,10 @@
 #include <matrix.cuh>
 #include <vector.cuh>
 #include <ray.cuh>
+#include <hittable.cuh>
+#include <hittable_list.cuh>
+#include <rt_weekend.cuh>
+#include <sphere.cuh>
 
 struct SceneInfo {
     Vector pixel00_loc;
@@ -18,7 +22,6 @@ __device__ double hit_sphere(const Point& center, double radius, const Ray& ray)
     auto h = dot(ray.direction(), oc);
     auto c = oc.length_squared() - radius*radius;
     auto discriminant = h*h - a*c;
-    // return (discriminant >= 0);
     if (discriminant < 0)
     {
         return -1.0;
@@ -28,12 +31,14 @@ __device__ double hit_sphere(const Point& center, double radius, const Ray& ray)
 
 __device__ Color ray_color(const Ray& ray)
 {
-    auto t = hit_sphere(Point(0, 0, -1), 0.5, ray);
-    if (t > 0.0)
-    {
-        Vector N = unit_vector(ray.at(t) - Vector(0,0,-1));
-        return 0.5*Color(N.x()+1, N.y()+1, N.z()+1);
+    HitRecord record;
+    Sphere sphere(Point(0, 0, -1), 0.5);
+    Sphere sphere2(Point(0,-100.5,-1), 100);
+
+    if (sphere.hit(ray, 0, infinity, record) || sphere2.hit(ray, 0, infinity, record)) {
+        return 0.5 * (record.normal + Color(1, 1, 1));
     }
+
     Vector unit_direction = unit_vector(ray.direction());
     auto a = 0.5*(unit_direction.y() + 1.0);
     return (1.0-a)*Color(1.0, 1.0, 1.0) + a*Color(0.5, 0.7, 1.0);
@@ -41,7 +46,6 @@ __device__ Color ray_color(const Ray& ray)
 
 __global__ void write_img(Matrix d_img, SceneInfo scene_info)
 {
-
     Vector pixel00_loc = scene_info.pixel00_loc;
     Vector camera_center = scene_info.camera_center;
     Vector pixel_delta_u = scene_info.pixel_delta_u;
@@ -56,7 +60,6 @@ __global__ void write_img(Matrix d_img, SceneInfo scene_info)
         auto ray_direction = pixel_center - camera_center;
 
         Ray ray(camera_center, ray_direction);
-
         Color pixel_color = ray_color(ray);
 
         double r = pixel_color.x();
@@ -76,6 +79,9 @@ int main()
 
     int img_height = int(img_width / aspect_ratio);
     img_height = (img_height < 1) ? 1 : img_height;
+
+    // Sphere* sphere1 = new Sphere(Point(0,0,-1), 0.5);
+    // Sphere* sphere2 = new Sphere(Point(0,-100.5,-1), 100);
 
     // camera
     auto focal_length = 1.0;
@@ -110,13 +116,12 @@ int main()
 
     if (error != cudaSuccess) 
     {
-        std::cerr << "CUDA error: " << cudaGetErrorString(error) << std::endl;
+        std::cerr << "error while allocating memory for img: " << cudaGetErrorString(error) << std::endl;
         return -1;
     }
 
     dim3 dim_block(block_size, block_size);
     dim3 dim_grid((img_width + dim_block.x-1) / block_size , (img_height + dim_block.y-1) / block_size ); 
-
 
     SceneInfo scene_info{pixel00_loc, camera_center, pixel_delta_u, pixel_delta_v};
 
@@ -125,7 +130,7 @@ int main()
 
     if (error != cudaSuccess) 
     {
-        std::cerr << "CUDA error after kernel launch: " << cudaGetErrorString(error) << std::endl;
+        std::cerr << "cudaDeviceSynchronize error after kernel launch: " << cudaGetErrorString(error) << std::endl;
         return -1;
     }
 
@@ -133,7 +138,7 @@ int main()
 
     if (error != cudaSuccess) 
     {
-        std::cerr << "CUDA error during cudaMemcpy: " << cudaGetErrorString(error) << std::endl;
+        std::cerr << "cudaMemcpy error during cudaMemcpy: " << cudaGetErrorString(error) << std::endl;
         return -1;
     }
 
