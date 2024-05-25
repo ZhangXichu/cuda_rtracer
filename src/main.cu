@@ -17,6 +17,11 @@ struct SceneInfo {
     Vector pixel_delta_v;
 };
 
+__global__ void setup_kernel(curandState *state, unsigned long seed) {
+    int idx = threadIdx.x + blockIdx.x * blockDim.x;
+    curand_init(seed, idx, 0, &state[idx]);
+}
+
 __device__ double hit_sphere(const Point& center, double radius, const Ray& ray) {
     Vector oc = center - ray.origin();
     auto a = ray.direction().length_squared();
@@ -46,31 +51,63 @@ __device__ Color ray_color(const Ray& ray)
     return (1.0-a)*Color(1.0, 1.0, 1.0) + a*Color(0.5, 0.7, 1.0);
 }
 
-__global__ void write_img(Matrix d_img, SceneInfo scene_info)
+__device__ Vector sample_square(curandState* rand_states) {
+        // Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
+        return Vector(random_double(rand_states) - 0.5, random_double(rand_states) - 0.5, 0);
+    }
+
+__device__ Ray get_ray(int i, int j, SceneInfo scene_info, curandState* rand_states)
+{
+    // Construct a camera ray originating from the origin and directed at randomly sampled
+        // point around the pixel location i, j.
+    auto offset = sample_square(rand_states);
+    auto pixel_sample = scene_info.pixel00_loc
+                        + ((i + offset.x()) * scene_info.pixel_delta_u)
+                        + ((j + offset.y()) * scene_info.pixel_delta_v);
+
+    auto ray_origin = scene_info.camera_center;
+    auto ray_direction = pixel_sample - ray_origin;
+
+    return Ray(ray_origin, ray_direction);
+}
+
+__global__ void write_img(Matrix d_img, SceneInfo scene_info, int samples_per_pixel, curandState* rand_states)
 {
     Vector pixel00_loc = scene_info.pixel00_loc;
     Vector camera_center = scene_info.camera_center;
     Vector pixel_delta_u = scene_info.pixel_delta_u;
     Vector pixel_delta_v = scene_info.pixel_delta_v;
 
+    double pixel_samples_scale = 1.0 / samples_per_pixel;
+
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    const Interval intensity(0.000, 0.999);
 
     if (row < d_img.height && col < d_img.width)
     {
         auto pixel_center = pixel00_loc + (col * pixel_delta_u) + (row * pixel_delta_v);
         auto ray_direction = pixel_center - camera_center;
 
-        Ray ray(camera_center, ray_direction);
-        Color pixel_color = ray_color(ray);
+        // Ray ray(camera_center, ray_direction);
+        // Color pixel_color = ray_color(ray);
+
+        Color pixel_color(0, 0, 0);
+        for (int sample = 0; sample < samples_per_pixel; sample++){
+            Ray ray = get_ray(col, row, scene_info, rand_states);
+            pixel_color += ray_color(ray);
+        }
+
+        pixel_color = pixel_samples_scale * pixel_color;
 
         double r = pixel_color.x();
         double g = pixel_color.y();
         double b = pixel_color.z();
 
-        d_img.at(row, col).x = static_cast<unsigned char>(255.999 * r);
-        d_img.at(row, col).y = static_cast<unsigned char>(255.999 * g);
-        d_img.at(row, col).z = static_cast<unsigned char>(255.999 * b);
+        d_img.at(row, col).x = static_cast<unsigned char>(255.999 * intensity.clamp(r));
+        d_img.at(row, col).y = static_cast<unsigned char>(255.999 * intensity.clamp(g));
+        d_img.at(row, col).z = static_cast<unsigned char>(255.999 * intensity.clamp(b));
     }
 }
 
@@ -84,12 +121,10 @@ int main()
 
     auto aspect_ratio = 16.0 / 9.0;
     int img_width = 800;
+    int samples_per_pixel = 100; 
 
     int img_height = int(img_width / aspect_ratio);
     img_height = (img_height < 1) ? 1 : img_height;
-
-    // Sphere* sphere1 = new Sphere(Point(0,0,-1), 0.5);
-    // Sphere* sphere2 = new Sphere(Point(0,-100.5,-1), 100);
 
     // camera
     auto focal_length = 1.0;
@@ -133,7 +168,15 @@ int main()
 
     SceneInfo scene_info{pixel00_loc, camera_center, pixel_delta_u, pixel_delta_v};
 
-    write_img<<<dim_grid, dim_block>>>(d_img, scene_info);
+    curandState* rand_states;
+    int N = 1024;
+    int num_threads = 256;
+    int num_blocks = (N + num_threads - 1) / num_threads;
+    cudaMalloc((void**)&rand_states, N * sizeof(curandState));
+
+    setup_kernel<<<num_blocks, num_threads>>>(rand_states, time(0));
+
+    write_img<<<dim_grid, dim_block>>>(d_img, scene_info, samples_per_pixel, rand_states);
     error = cudaDeviceSynchronize();
 
     if (error != cudaSuccess) 
@@ -161,6 +204,7 @@ int main()
     }
 
     cudaFree(d_img.data);
+    cudaFree(rand_states);
     delete[] h_img.data;
 
     return 0;

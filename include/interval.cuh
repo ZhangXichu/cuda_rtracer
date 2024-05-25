@@ -26,6 +26,12 @@ public:
     __device__ bool surrounds(double x) const {
         return min < x && x < max;
     }
+
+    __device__ double clamp(double x) const {
+        if (x < min) return min;
+        if (x > max) return max;
+        return x;
+    }
 };
 
 extern __constant__ Interval empty;
