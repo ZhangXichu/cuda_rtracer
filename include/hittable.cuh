@@ -3,6 +3,7 @@
 
 #include <vector.cuh>
 #include <ray.cuh>
+#include <interval.cuh>
 
 class HitRecord {
 
@@ -25,7 +26,7 @@ class Hittable {
 
 public:
      __device__ virtual ~Hittable() {};
-     __device__ virtual bool hit(const Ray& r, double ray_tmin, double ray_tmax, HitRecord& record) const = 0;
+     __device__ virtual bool hit(const Ray& r, Interval ray_t, HitRecord& record) const = 0;
 };
 
 #endif

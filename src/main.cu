@@ -8,6 +8,7 @@
 #include <hittable_list.cuh>
 #include <rt_weekend.cuh>
 #include <sphere.cuh>
+#include <interval.cuh>
 
 struct SceneInfo {
     Vector pixel00_loc;
@@ -32,10 +33,11 @@ __device__ double hit_sphere(const Point& center, double radius, const Ray& ray)
 __device__ Color ray_color(const Ray& ray)
 {
     HitRecord record;
+
     Sphere sphere(Point(0, 0, -1), 0.5);
     Sphere sphere2(Point(0,-100.5,-1), 100);
 
-    if (sphere.hit(ray, 0, infinity, record) || sphere2.hit(ray, 0, infinity, record)) {
+    if (sphere.hit(ray, Interval(0.0, infinity), record) || sphere2.hit(ray, Interval(0.0, infinity), record)) {
         return 0.5 * (record.normal + Color(1, 1, 1));
     }
 
@@ -74,6 +76,12 @@ __global__ void write_img(Matrix d_img, SceneInfo scene_info)
 
 int main()
 {
+    // initialize constants empty and universal
+    Interval h_empty(+infinity, -infinity);
+    Interval h_universe(-infinity, +infinity);
+    cudaMemcpyToSymbol(empty, &h_empty, sizeof(Interval));
+    cudaMemcpyToSymbol(universe, &h_universe, sizeof(Interval));
+
     auto aspect_ratio = 16.0 / 9.0;
     int img_width = 800;
 

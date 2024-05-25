@@ -22,6 +22,6 @@ public:
     }
 
     __device__ void add(Hittable* object, size_t obj_size);
-    __device__ virtual bool hit(const Ray& ray, double ray_tmin, double ray_tmax, HitRecord& record) const override;
+    __device__ virtual bool hit(const Ray& ray, Interval ray_t, HitRecord& record) const override;
 
 };

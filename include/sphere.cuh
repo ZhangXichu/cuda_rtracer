@@ -16,7 +16,7 @@ public:
         , _radius(my_fmax(0, radius)) {}
 
     __device__ ~Sphere() {}
-    __device__ virtual bool hit(const Ray& ray, double ray_tmin, double ray_tmax, HitRecord& record) const override;
+    __device__ virtual bool hit(const Ray& ray, Interval ray_t, HitRecord& record) const override;
 
 private:
     Point _center;

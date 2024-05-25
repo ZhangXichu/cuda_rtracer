@@ -11,10 +11,10 @@ __device__ void HittableList::add(Hittable* object, size_t obj_size) {
     }
 
 
-__device__ bool HittableList::hit(const Ray& ray, double ray_tmin, double ray_tmax, HitRecord& record) const {
+__device__ bool HittableList::hit(const Ray& ray, Interval ray_t, HitRecord& record) const {
         HitRecord temp_rec;
         bool hit_anything = false;
-        auto closest_so_far = ray_tmax;
+        auto closest_so_far = ray_t.max;
 
         printf("HittableList::hit called \n");
 
@@ -22,7 +22,7 @@ __device__ bool HittableList::hit(const Ray& ray, double ray_tmin, double ray_tm
 
             printf("hit object i = %d\n", i);
 
-            if (objects[i]->hit(ray, ray_tmin, closest_so_far, temp_rec)) {
+            if (objects[i]->hit(ray, Interval(ray_t.min, closest_so_far), temp_rec)) {
                 hit_anything = true;
                 closest_so_far = temp_rec.t;
                 record = temp_rec;
