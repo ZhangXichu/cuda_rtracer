@@ -79,7 +79,7 @@ __host__ __device__ inline Vector operator-(const Vector& u, const Vector& v)
     return Vector(u.x() - v.x(), u.y() - v.y(), u.z() - v.z());
 }
 
-__host__ __device__ inline Vector operator*(const Vector& u, const Vector& v)
+__device__ inline Vector operator*(const Vector& u, const Vector& v)
 {
     return Vector(u.x()*v.x(), u.y()*v.y(), u.z()*v.z());
 }

@@ -35,26 +35,38 @@ __device__ double hit_sphere(const Point& center, double radius, const Ray& ray)
     return (h - sqrt(discriminant)) / a;
 }
 
-__device__ Color ray_color(curandState* rand_states, int depth, const Ray& ray)
+__device__ Color ray_color(curandState* rand_states, int max_depth, const Ray& ray)
 {
-    if (depth <= 0)
-            return Color(0,0,0);
+    Color accumulated_color(1.0, 1.0, 1.0); 
+    Ray current_ray = ray;
+    int depth = 0;
 
     HitRecord record;
 
     Sphere sphere(Point(0, 0, -1), 0.5);
     Sphere sphere2(Point(0,-100.5,-1), 100);
 
-    if (sphere.hit(ray, Interval(0.0, infinity), record) || sphere2.hit(ray, Interval(0.0, infinity), record)) {
-        Vector direction = random_on_hemisphere(rand_states, record.normal);
+    while (depth < max_depth) {
+        
+        if (sphere.hit(current_ray, Interval(0.0, infinity), record) || sphere2.hit(current_ray, Interval(0.0, infinity), record)) 
+        {
+            Vector direction = random_on_hemisphere(rand_states, record.normal);
+            current_ray = Ray(record.p, direction);
+            accumulated_color *= 0.5;
+            
+        } else {
+            
+            Vector unit_direction = unit_vector(current_ray.direction());
+            auto a = 0.5*(unit_direction.y() + 1.0);
+            Color background = (1.0 - a) * Color(1.0, 1.0, 1.0) + a * Color(0.5, 0.7, 1.0);
 
-        return 0.5 * ray_color(rand_states, depth-1, Ray(record.p, direction));
-        // return 0.5 * (record.normal + Color(1, 1, 1));
+            accumulated_color = accumulated_color * background;
+            break;
+        }
+        
+        depth++;
     }
-
-    Vector unit_direction = unit_vector(ray.direction());
-    auto a = 0.5*(unit_direction.y() + 1.0);
-    return (1.0-a)*Color(1.0, 1.0, 1.0) + a*Color(0.5, 0.7, 1.0);
+    return accumulated_color;
 }
 
 __device__ Vector sample_square(curandState* rand_states) {
@@ -96,13 +108,10 @@ __global__ void write_img(Matrix d_img, SceneInfo scene_info, int samples_per_pi
         auto pixel_center = pixel00_loc + (col * pixel_delta_u) + (row * pixel_delta_v);
         auto ray_direction = pixel_center - camera_center;
 
-        // Ray ray(camera_center, ray_direction);
-        // Color pixel_color = ray_color(ray);
-
         Color pixel_color(0, 0, 0);
         for (int sample = 0; sample < samples_per_pixel; sample++){
             Ray ray = get_ray(col, row, scene_info, rand_states);
-            pixel_color += ray_color(rand_states, 15, ray);
+            pixel_color += ray_color(rand_states, 50, ray);
         }
 
         pixel_color = pixel_samples_scale * pixel_color;
