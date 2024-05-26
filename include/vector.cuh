@@ -2,6 +2,7 @@
 #define VECTOR_H
 
 #include <cmath>
+#include <rt_weekend.cuh>
 #include <cuda_runtime.h>
 
 class Vector {
@@ -113,6 +114,36 @@ __host__ __device__ inline Vector cross(const Vector& u, const Vector& v)
 __host__ __device__ inline Vector unit_vector(const Vector& v)
 {
     return v / v.length();
+}
+
+__device__ inline Vector random_vec(curandState *state) 
+{
+    return Vector(random_double(state), random_double(state), random_double(state));
+}
+
+__device__ inline Vector random_vec(curandState *state, double min, double max) 
+{
+    return Vector(random_double(state, min, max), random_double(state, min, max), random_double(state, min, max));
+}
+
+__device__ inline Vector random_in_unit_sphere(curandState *state) {
+    while (true) {
+        auto p = random_vec(state, -1,1);
+        if (p.length_squared() < 1)
+            return p;
+    }
+}
+
+__device__ inline Vector random_unit_vector(curandState *state) {
+    return unit_vector(random_in_unit_sphere(state));
+}
+
+__device__ inline Vector random_on_hemisphere(curandState *state, const Vector& normal) {
+    Vector on_unit_sphere = random_unit_vector(state);
+    if (dot(on_unit_sphere, normal) > 0.0) // In the same hemisphere as the normal
+        return on_unit_sphere;
+    else
+        return -on_unit_sphere;
 }
 
 using Color = Vector;

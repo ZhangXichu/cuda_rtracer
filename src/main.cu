@@ -35,15 +35,21 @@ __device__ double hit_sphere(const Point& center, double radius, const Ray& ray)
     return (h - sqrt(discriminant)) / a;
 }
 
-__device__ Color ray_color(const Ray& ray)
+__device__ Color ray_color(curandState* rand_states, int depth, const Ray& ray)
 {
+    if (depth <= 0)
+            return Color(0,0,0);
+
     HitRecord record;
 
     Sphere sphere(Point(0, 0, -1), 0.5);
     Sphere sphere2(Point(0,-100.5,-1), 100);
 
     if (sphere.hit(ray, Interval(0.0, infinity), record) || sphere2.hit(ray, Interval(0.0, infinity), record)) {
-        return 0.5 * (record.normal + Color(1, 1, 1));
+        Vector direction = random_on_hemisphere(rand_states, record.normal);
+
+        return 0.5 * ray_color(rand_states, depth-1, Ray(record.p, direction));
+        // return 0.5 * (record.normal + Color(1, 1, 1));
     }
 
     Vector unit_direction = unit_vector(ray.direction());
@@ -96,7 +102,7 @@ __global__ void write_img(Matrix d_img, SceneInfo scene_info, int samples_per_pi
         Color pixel_color(0, 0, 0);
         for (int sample = 0; sample < samples_per_pixel; sample++){
             Ray ray = get_ray(col, row, scene_info, rand_states);
-            pixel_color += ray_color(ray);
+            pixel_color += ray_color(rand_states, 15, ray);
         }
 
         pixel_color = pixel_samples_scale * pixel_color;
@@ -119,9 +125,11 @@ int main()
     cudaMemcpyToSymbol(empty, &h_empty, sizeof(Interval));
     cudaMemcpyToSymbol(universe, &h_universe, sizeof(Interval));
 
+    cudaDeviceSetLimit(cudaLimitStackSize, 65536);
+
     auto aspect_ratio = 16.0 / 9.0;
     int img_width = 800;
-    int samples_per_pixel = 100; 
+    int samples_per_pixel = 50; 
 
     int img_height = int(img_width / aspect_ratio);
     img_height = (img_height < 1) ? 1 : img_height;
@@ -177,6 +185,7 @@ int main()
     setup_kernel<<<num_blocks, num_threads>>>(rand_states, time(0));
 
     write_img<<<dim_grid, dim_block>>>(d_img, scene_info, samples_per_pixel, rand_states);
+
     error = cudaDeviceSynchronize();
 
     if (error != cudaSuccess) 
