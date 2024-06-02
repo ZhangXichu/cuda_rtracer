@@ -17,7 +17,7 @@ struct SceneInfo {
     Vector pixel_delta_v;
 };
 
-__device__ Sphere** sphere_lst;
+__device__ Hittable** sphere_lst;
 
 __global__ void setup_kernel(curandState *state, unsigned long seed) {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
@@ -94,7 +94,7 @@ __global__ void create_world()
 {
     if (threadIdx.x == 0 && blockIdx.x == 0)
     {
-        sphere_lst = (Sphere**)malloc(2 * sizeof(Sphere*));
+        sphere_lst = (Hittable**)malloc(2 * sizeof(Hittable*));
 
         printf("The memory address of sphere_lst is: %p\n", (void*)&sphere_lst);
 
