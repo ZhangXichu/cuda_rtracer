@@ -18,6 +18,7 @@ struct SceneInfo {
 };
 
 __device__ Hittable** sphere_lst;
+__device__ Hittable* world;
 
 __global__ void setup_kernel(curandState *state, unsigned long seed) {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
@@ -50,7 +51,8 @@ __device__ Color ray_color(curandState* rand_states, int max_depth, const Ray& r
 
     while (depth < max_depth) {
         
-         if (sphere_lst[0]->hit(current_ray, Interval(0.0, infinity), record) || sphere_lst[1]->hit(current_ray, Interval(0.0, infinity), record)) 
+        // if (sphere_lst[0]->hit(current_ray, Interval(0.0, infinity), record) || sphere_lst[1]->hit(current_ray, Interval(0.0, infinity), record)) 
+        if (world->hit(current_ray, Interval(0.0, infinity), record))
         {
             Vector direction = random_on_hemisphere(rand_states, record.normal);
             current_ray = Ray(record.p, direction);
@@ -90,18 +92,25 @@ __device__ Ray get_ray(int i, int j, SceneInfo scene_info, curandState* rand_sta
     return Ray(ray_origin, ray_direction);
 }
 
+
+// reference https://docs.nvidia.com/cuda/archive/12.0.1/cuda-c-programming-guide/index.html#dynamic-global-memory-allocation-and-operations
+// section 7.34
 __global__ void create_world()
 {
     if (threadIdx.x == 0 && blockIdx.x == 0)
     {
         sphere_lst = (Hittable**)malloc(2 * sizeof(Hittable*));
+        world = (Hittable*)malloc(sizeof(Hittable*));
 
         printf("The memory address of sphere_lst is: %p\n", (void*)&sphere_lst);
 
         sphere_lst[0] = new Sphere(Point(0, 0, -1), 0.5);
         sphere_lst[1] = new Sphere(Point(0,-100.5,-1), 100);
 
-        printf("The memory address of sphere1 and sphere2 are: %p, %p\n", (void*)&sphere_lst[0], (void*)&sphere_lst[1]);
+        printf("The memory address of sphere1 and sphere2 are: %p, %p\n", (void*)sphere_lst[0], (void*)sphere_lst[1]);
+        printf("Memory address of world: %p\n", (void*)world);
+
+        world = new HittableList(sphere_lst, 2);
     }
 
 }

@@ -16,12 +16,7 @@ __device__ bool HittableList::hit(const Ray& ray, Interval ray_t, HitRecord& rec
         bool hit_anything = false;
         auto closest_so_far = ray_t.max;
 
-        printf("HittableList::hit called \n");
-
         for (int i = 0; i < size; i++) {
-
-            printf("hit object i = %d\n", i);
-
             if (objects[i]->hit(ray, Interval(ray_t.min, closest_so_far), temp_rec)) {
                 hit_anything = true;
                 closest_so_far = temp_rec.t;

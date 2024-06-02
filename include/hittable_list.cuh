@@ -9,10 +9,9 @@ public:
     int size;
     int capacity;
 
-    __device__ HittableList() 
-        : objects(nullptr)
-        , size(2)
-        , capacity(0){}
+    __device__ HittableList(Hittable** lst_objs, int lst_size) 
+        : objects(lst_objs)
+        , size(lst_size){}
 
     __device__ ~HittableList() {
         for (int i = 0; i < size; i++) {
