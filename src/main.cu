@@ -17,6 +17,8 @@ struct SceneInfo {
     Vector pixel_delta_v;
 };
 
+__device__ Sphere** sphere_lst;
+
 __global__ void setup_kernel(curandState *state, unsigned long seed) {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     curand_init(seed, idx, 0, &state[idx]);
@@ -48,7 +50,7 @@ __device__ Color ray_color(curandState* rand_states, int max_depth, const Ray& r
 
     while (depth < max_depth) {
         
-        if (sphere.hit(current_ray, Interval(0.0, infinity), record) || sphere2.hit(current_ray, Interval(0.0, infinity), record)) 
+         if (sphere_lst[0]->hit(current_ray, Interval(0.0, infinity), record) || sphere_lst[1]->hit(current_ray, Interval(0.0, infinity), record)) 
         {
             Vector direction = random_on_hemisphere(rand_states, record.normal);
             current_ray = Ray(record.p, direction);
@@ -70,7 +72,6 @@ __device__ Color ray_color(curandState* rand_states, int max_depth, const Ray& r
 }
 
 __device__ Vector sample_square(curandState* rand_states) {
-        // Returns the vector to a random point in the [-.5,-.5]-[+.5,+.5] unit square.
         return Vector(random_double(rand_states) - 0.5, random_double(rand_states) - 0.5, 0);
     }
 
@@ -87,6 +88,30 @@ __device__ Ray get_ray(int i, int j, SceneInfo scene_info, curandState* rand_sta
     auto ray_direction = pixel_sample - ray_origin;
 
     return Ray(ray_origin, ray_direction);
+}
+
+__global__ void create_world()
+{
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+    {
+        sphere_lst = (Sphere**)malloc(2 * sizeof(Sphere*));
+
+        printf("The memory address of sphere_lst is: %p\n", (void*)&sphere_lst);
+
+        sphere_lst[0] = new Sphere(Point(0, 0, -1), 0.5);
+        sphere_lst[1] = new Sphere(Point(0,-100.5,-1), 100);
+
+        printf("The memory address of sphere1 and sphere2 are: %p, %p\n", (void*)&sphere_lst[0], (void*)&sphere_lst[1]);
+    }
+
+}
+
+__global__ void free_world()
+{
+    if (threadIdx.x == 0 && blockIdx.x == 0)
+    {
+        free(sphere_lst);
+    }
 }
 
 __global__ void write_img(Matrix d_img, SceneInfo scene_info, int samples_per_pixel, curandState* rand_states)
@@ -193,6 +218,8 @@ int main()
 
     setup_kernel<<<num_blocks, num_threads>>>(rand_states, time(0));
 
+    create_world<<<1,1>>>();
+
     write_img<<<dim_grid, dim_block>>>(d_img, scene_info, samples_per_pixel, rand_states);
 
     error = cudaDeviceSynchronize();
@@ -220,6 +247,8 @@ int main()
                       << (int)h_img.at(i, j).z << '\n';
         }
     }
+
+    free_world<<<1,1>>>();
 
     cudaFree(d_img.data);
     cudaFree(rand_states);

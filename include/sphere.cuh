@@ -17,7 +17,7 @@ public:
 
     __device__ ~Sphere() {}
     __device__ virtual bool hit(const Ray& ray, Interval ray_t, HitRecord& record) const override;
-
+ 
 private:
     Point _center;
     double _radius;
