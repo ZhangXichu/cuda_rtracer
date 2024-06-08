@@ -1,5 +1,8 @@
 #include <camera.cuh>
 
+__device__ Hittable** sphere_lst;
+__device__ Hittable* world;
+
 void Camera::initialize()
 {
     _img_height = int(img_width / aspect_ratio);
@@ -24,6 +27,40 @@ void Camera::initialize()
     _scene_info = SceneInfo{_pixel00_loc, _camera_center, _pixel_delta_u, _pixel_delta_v};
 
     // printf("Camera::initialize: scene_info: pixel00_loc (%f, %f, %f)", _scene_info.pixel00_loc.x(),_scene_info.pixel00_loc.y(), _scene_info.pixel00_loc.z());
+}
+
+__device__ Color Camera::ray_color(curandState* rand_states, int max_depth, const Ray& ray)
+{
+    Color accumulated_color(1.0, 1.0, 1.0); 
+    Ray current_ray = ray;
+    int depth = 0;
+
+    HitRecord record;
+
+    Sphere sphere(Point(0, 0, -1), 0.5);
+    Sphere sphere2(Point(0,-100.5,-1), 100);
+
+    while (depth < max_depth) {
+        
+        if (world->hit(current_ray, Interval(0.0, infinity), record))
+        {
+            Vector direction = random_on_hemisphere(rand_states, record.normal);
+            current_ray = Ray(record.p, direction);
+            accumulated_color *= 0.5;
+            
+        } else {
+            
+            Vector unit_direction = unit_vector(current_ray.direction());
+            auto a = 0.5*(unit_direction.y() + 1.0);
+            Color background = (1.0 - a) * Color(1.0, 1.0, 1.0) + a * Color(0.5, 0.7, 1.0);
+
+            accumulated_color = accumulated_color * background;
+            break;
+        }
+        
+        depth++;
+    }
+    return accumulated_color;
 }
 
 int Camera::get_img_height() const

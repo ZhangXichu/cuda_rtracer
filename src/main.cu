@@ -2,70 +2,69 @@
 #include <fstream>
 #include <cuda_runtime.h>
 #include <matrix.cuh>
-#include <ray.cuh>
-#include <hittable.cuh>
+
 #include <hittable_list.cuh>
 #include <rt_weekend.cuh>
-#include <sphere.cuh>
+
 #include <interval.cuh>
 #include <error_check.cuh>
 #include <camera.cuh>
 
 
-__device__ Hittable** sphere_lst;
-__device__ Hittable* world;
+// __device__ Hittable** sphere_lst;
+// __device__ Hittable* world;
 
 __global__ void setup_kernel(curandState *state, unsigned long seed) {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     curand_init(seed, idx, 0, &state[idx]);
 }
 
-__device__ double hit_sphere(const Point& center, double radius, const Ray& ray) {
-    Vector oc = center - ray.origin();
-    auto a = ray.direction().length_squared();
-    auto h = dot(ray.direction(), oc);
-    auto c = oc.length_squared() - radius*radius;
-    auto discriminant = h*h - a*c;
-    if (discriminant < 0)
-    {
-        return -1.0;
-    }
-    return (h - sqrt(discriminant)) / a;
-}
+// __device__ double hit_sphere(const Point& center, double radius, const Ray& ray) {
+//     Vector oc = center - ray.origin();
+//     auto a = ray.direction().length_squared();
+//     auto h = dot(ray.direction(), oc);
+//     auto c = oc.length_squared() - radius*radius;
+//     auto discriminant = h*h - a*c;
+//     if (discriminant < 0)
+//     {
+//         return -1.0;
+//     }
+//     return (h - sqrt(discriminant)) / a;
+// }
 
-__device__ Color ray_color(curandState* rand_states, int max_depth, const Ray& ray)
-{
-    Color accumulated_color(1.0, 1.0, 1.0); 
-    Ray current_ray = ray;
-    int depth = 0;
+// __device__ Color ray_color(curandState* rand_states, int max_depth, const Ray& ray)
+// {
+//     Color accumulated_color(1.0, 1.0, 1.0); 
+//     Ray current_ray = ray;
+//     int depth = 0;
 
-    HitRecord record;
+//     HitRecord record;
 
-    Sphere sphere(Point(0, 0, -1), 0.5);
-    Sphere sphere2(Point(0,-100.5,-1), 100);
+//     Sphere sphere(Point(0, 0, -1), 0.5);
+//     Sphere sphere2(Point(0,-100.5,-1), 100);
 
-    while (depth < max_depth) {
+//     while (depth < max_depth) {
         
-        if (world->hit(current_ray, Interval(0.0, infinity), record))
-        {
-            Vector direction = random_on_hemisphere(rand_states, record.normal);
-            current_ray = Ray(record.p, direction);
-            accumulated_color *= 0.5;
+//         if (world->hit(current_ray, Interval(0.0, infinity), record))
+//         {
+//             Vector direction = random_on_hemisphere(rand_states, record.normal);
+//             current_ray = Ray(record.p, direction);
+//             accumulated_color *= 0.5;
             
-        } else {
+//         } else {
             
-            Vector unit_direction = unit_vector(current_ray.direction());
-            auto a = 0.5*(unit_direction.y() + 1.0);
-            Color background = (1.0 - a) * Color(1.0, 1.0, 1.0) + a * Color(0.5, 0.7, 1.0);
+//             Vector unit_direction = unit_vector(current_ray.direction());
+//             auto a = 0.5*(unit_direction.y() + 1.0);
+//             Color background = (1.0 - a) * Color(1.0, 1.0, 1.0) + a * Color(0.5, 0.7, 1.0);
 
-            accumulated_color = accumulated_color * background;
-            break;
-        }
+//             accumulated_color = accumulated_color * background;
+//             break;
+//         }
         
-        depth++;
-    }
-    return accumulated_color;
-}
+//         depth++;
+//     }
+//     return accumulated_color;
+// }
 
 __device__ Vector sample_square(curandState* rand_states) {
         return Vector(random_double(rand_states) - 0.5, random_double(rand_states) - 0.5, 0);
@@ -117,8 +116,10 @@ __global__ void free_world()
     }
 }
 
-__global__ void write_img(Matrix d_img, SceneInfo scene_info, int samples_per_pixel, curandState* rand_states)
+__global__ void write_img(Matrix d_img, Camera camera, int samples_per_pixel, curandState* rand_states)
 {
+    SceneInfo scene_info = camera.get_scene_info();
+
     Vector pixel00_loc = scene_info.pixel00_loc;
     Vector camera_center = scene_info.camera_center;
     Vector pixel_delta_u = scene_info.pixel_delta_u;
@@ -139,7 +140,7 @@ __global__ void write_img(Matrix d_img, SceneInfo scene_info, int samples_per_pi
         Color pixel_color(0, 0, 0);
         for (int sample = 0; sample < samples_per_pixel; sample++){
             Ray ray = get_ray(col, row, scene_info, rand_states);
-            pixel_color += ray_color(rand_states, 50, ray);
+            pixel_color += camera.ray_color(rand_states, 50, ray);
         }
 
         pixel_color = pixel_samples_scale * pixel_color;
@@ -202,7 +203,7 @@ int main()
 
     create_world<<<1,1>>>();
 
-    write_img<<<dim_grid, dim_block>>>(d_img, scene_info, samples_per_pixel, rand_states);
+    write_img<<<dim_grid, dim_block>>>(d_img, camera, samples_per_pixel, rand_states);
 
     GPU_ERR_CHECK(cudaDeviceSynchronize());
 

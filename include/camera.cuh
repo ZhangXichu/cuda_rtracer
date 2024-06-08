@@ -2,6 +2,12 @@
 #define CAMERA_H
 
 #include <vector.cuh>
+#include <ray.cuh>
+#include <hittable.cuh>
+#include <sphere.cuh>
+
+extern __device__ Hittable** sphere_lst;
+extern __device__ Hittable* world;
 
 struct SceneInfo {
     Vector pixel00_loc;
@@ -18,9 +24,10 @@ public:
     int img_width = 800;
 
     int get_img_height() const;
-    SceneInfo get_scene_info() const;
+    __host__ __device__ SceneInfo get_scene_info() const;
 
     void initialize();
+    __device__ Color ray_color(curandState* rand_states, int max_depth, const Ray& ray);
 
 
 private:
