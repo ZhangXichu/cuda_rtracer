@@ -63,6 +63,25 @@ __device__ Color Camera::ray_color(curandState* rand_states, int max_depth, cons
     return accumulated_color;
 }
 
+__device__ Vector Camera::sample_square(curandState* rand_states) {
+        return Vector(random_double(rand_states) - 0.5, random_double(rand_states) - 0.5, 0);
+    }
+
+__device__ Ray Camera::get_ray(int i, int j, curandState* rand_states)
+{
+    // Construct a camera ray originating from the origin and directed at randomly sampled
+        // point around the pixel location i, j.
+    auto offset = sample_square(rand_states);
+    auto pixel_sample = _scene_info.pixel00_loc
+                        + ((i + offset.x()) * _scene_info.pixel_delta_u)
+                        + ((j + offset.y()) * _scene_info.pixel_delta_v);
+
+    auto ray_origin = _scene_info.camera_center;
+    auto ray_direction = pixel_sample - ray_origin;
+
+    return Ray(ray_origin, ray_direction);
+}
+
 int Camera::get_img_height() const
 {
     return _img_height;

@@ -25,9 +25,10 @@ public:
 
     int get_img_height() const;
     __host__ __device__ SceneInfo get_scene_info() const;
-
     void initialize();
     __device__ Color ray_color(curandState* rand_states, int max_depth, const Ray& ray);
+    __device__ Vector sample_square(curandState* rand_states);
+    __device__ Ray get_ray(int i, int j, curandState* rand_states);
 
 
 private:

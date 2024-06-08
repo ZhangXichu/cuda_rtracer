@@ -66,24 +66,24 @@ __global__ void setup_kernel(curandState *state, unsigned long seed) {
 //     return accumulated_color;
 // }
 
-__device__ Vector sample_square(curandState* rand_states) {
-        return Vector(random_double(rand_states) - 0.5, random_double(rand_states) - 0.5, 0);
-    }
+// __device__ Vector sample_square(curandState* rand_states) {
+//         return Vector(random_double(rand_states) - 0.5, random_double(rand_states) - 0.5, 0);
+//     }
 
-__device__ Ray get_ray(int i, int j, SceneInfo scene_info, curandState* rand_states)
-{
-    // Construct a camera ray originating from the origin and directed at randomly sampled
-        // point around the pixel location i, j.
-    auto offset = sample_square(rand_states);
-    auto pixel_sample = scene_info.pixel00_loc
-                        + ((i + offset.x()) * scene_info.pixel_delta_u)
-                        + ((j + offset.y()) * scene_info.pixel_delta_v);
+// __device__ Ray get_ray(int i, int j, SceneInfo scene_info, curandState* rand_states)
+// {
+//     // Construct a camera ray originating from the origin and directed at randomly sampled
+//         // point around the pixel location i, j.
+//     auto offset = sample_square(rand_states);
+//     auto pixel_sample = scene_info.pixel00_loc
+//                         + ((i + offset.x()) * scene_info.pixel_delta_u)
+//                         + ((j + offset.y()) * scene_info.pixel_delta_v);
 
-    auto ray_origin = scene_info.camera_center;
-    auto ray_direction = pixel_sample - ray_origin;
+//     auto ray_origin = scene_info.camera_center;
+//     auto ray_direction = pixel_sample - ray_origin;
 
-    return Ray(ray_origin, ray_direction);
-}
+//     return Ray(ray_origin, ray_direction);
+// }
 
 
 // reference https://docs.nvidia.com/cuda/archive/12.0.1/cuda-c-programming-guide/index.html#dynamic-global-memory-allocation-and-operations
@@ -139,7 +139,7 @@ __global__ void write_img(Matrix d_img, Camera camera, int samples_per_pixel, cu
 
         Color pixel_color(0, 0, 0);
         for (int sample = 0; sample < samples_per_pixel; sample++){
-            Ray ray = get_ray(col, row, scene_info, rand_states);
+            Ray ray = camera.get_ray(col, row, rand_states);
             pixel_color += camera.ray_color(rand_states, 50, ray);
         }
 
