@@ -10,81 +10,10 @@
 #include <error_check.cuh>
 #include <camera.cuh>
 
-
-// __device__ Hittable** sphere_lst;
-// __device__ Hittable* world;
-
 __global__ void setup_kernel(curandState *state, unsigned long seed) {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     curand_init(seed, idx, 0, &state[idx]);
 }
-
-// __device__ double hit_sphere(const Point& center, double radius, const Ray& ray) {
-//     Vector oc = center - ray.origin();
-//     auto a = ray.direction().length_squared();
-//     auto h = dot(ray.direction(), oc);
-//     auto c = oc.length_squared() - radius*radius;
-//     auto discriminant = h*h - a*c;
-//     if (discriminant < 0)
-//     {
-//         return -1.0;
-//     }
-//     return (h - sqrt(discriminant)) / a;
-// }
-
-// __device__ Color ray_color(curandState* rand_states, int max_depth, const Ray& ray)
-// {
-//     Color accumulated_color(1.0, 1.0, 1.0); 
-//     Ray current_ray = ray;
-//     int depth = 0;
-
-//     HitRecord record;
-
-//     Sphere sphere(Point(0, 0, -1), 0.5);
-//     Sphere sphere2(Point(0,-100.5,-1), 100);
-
-//     while (depth < max_depth) {
-        
-//         if (world->hit(current_ray, Interval(0.0, infinity), record))
-//         {
-//             Vector direction = random_on_hemisphere(rand_states, record.normal);
-//             current_ray = Ray(record.p, direction);
-//             accumulated_color *= 0.5;
-            
-//         } else {
-            
-//             Vector unit_direction = unit_vector(current_ray.direction());
-//             auto a = 0.5*(unit_direction.y() + 1.0);
-//             Color background = (1.0 - a) * Color(1.0, 1.0, 1.0) + a * Color(0.5, 0.7, 1.0);
-
-//             accumulated_color = accumulated_color * background;
-//             break;
-//         }
-        
-//         depth++;
-//     }
-//     return accumulated_color;
-// }
-
-// __device__ Vector sample_square(curandState* rand_states) {
-//         return Vector(random_double(rand_states) - 0.5, random_double(rand_states) - 0.5, 0);
-//     }
-
-// __device__ Ray get_ray(int i, int j, SceneInfo scene_info, curandState* rand_states)
-// {
-//     // Construct a camera ray originating from the origin and directed at randomly sampled
-//         // point around the pixel location i, j.
-//     auto offset = sample_square(rand_states);
-//     auto pixel_sample = scene_info.pixel00_loc
-//                         + ((i + offset.x()) * scene_info.pixel_delta_u)
-//                         + ((j + offset.y()) * scene_info.pixel_delta_v);
-
-//     auto ray_origin = scene_info.camera_center;
-//     auto ray_direction = pixel_sample - ray_origin;
-
-//     return Ray(ray_origin, ray_direction);
-// }
-
 
 // reference https://docs.nvidia.com/cuda/archive/12.0.1/cuda-c-programming-guide/index.html#dynamic-global-memory-allocation-and-operations
 // section 7.34
@@ -190,8 +119,6 @@ int main()
 
     dim3 dim_block(block_size, block_size);
     dim3 dim_grid((camera.img_width + dim_block.x-1) / block_size , (img_height + dim_block.y-1) / block_size ); 
-
-    // SceneInfo scene_info{pixel00_loc, camera_center, pixel_delta_u, pixel_delta_v};
 
     curandState* rand_states;
     int N = 1024;
