@@ -25,8 +25,6 @@ void Camera::initialize()
     _pixel00_loc = viewport_upper_left + 0.5 * (_pixel_delta_u + _pixel_delta_v);
 
     _scene_info = SceneInfo{_pixel00_loc, _camera_center, _pixel_delta_u, _pixel_delta_v};
-
-    // printf("Camera::initialize: scene_info: pixel00_loc (%f, %f, %f)", _scene_info.pixel00_loc.x(),_scene_info.pixel00_loc.y(), _scene_info.pixel00_loc.z());
 }
 
 __device__ Color Camera::ray_color(curandState* rand_states, int max_depth, const Ray& ray)
@@ -42,7 +40,7 @@ __device__ Color Camera::ray_color(curandState* rand_states, int max_depth, cons
 
     while (depth < max_depth) {
         
-        if (world->hit(current_ray, Interval(0.0, infinity), record))
+        if (world->hit(current_ray, Interval(0.001, infinity), record))
         {
             Vector direction = random_on_hemisphere(rand_states, record.normal);
             current_ray = Ray(record.p, direction);
