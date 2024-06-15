@@ -25,6 +25,7 @@ __device__ bool Sphere::hit(const Ray& ray, Interval ray_t, HitRecord& record) c
     record.p = ray.at(record.t);
     Vector outward_normal = (record.p - _center) / _radius;
     record.set_face_normal(ray, outward_normal);
+    record.material = _material;
 
     return true;
 }

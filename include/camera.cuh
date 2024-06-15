@@ -8,6 +8,8 @@
 
 extern __device__ Hittable** sphere_lst;
 extern __device__ Hittable* world;
+extern __device__ Metal* metal;
+extern __device__ Lambertian* lambertian;
 
 struct SceneInfo {
     Vector pixel00_loc;

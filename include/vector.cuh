@@ -61,6 +61,13 @@ __host__ __device__ double length() const
     return sqrt(length_squared());
 }
 
+__host__ __device__ bool near_zero() const 
+{
+    // Return true if the vector is close to zero in all dimensions.
+    auto s = 1e-8;
+    return (fabs(e.x) < s) && (fabs(e.y) < s) && (fabs(e.z) < s);
+}
+
 private:
 
     double3 e;
@@ -144,6 +151,10 @@ __device__ inline Vector random_on_hemisphere(curandState *state, const Vector& 
         return on_unit_sphere;
     else
         return -on_unit_sphere;
+}
+
+__device__ inline Vector reflect(const Vector& v, const Vector& n) {
+    return v - 2*dot(v,n)*n;
 }
 
 using Color = Vector;

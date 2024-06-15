@@ -4,12 +4,16 @@
 #include <vector.cuh>
 #include <ray.cuh>
 #include <interval.cuh>
+#include <material.cuh>
+
+class Material;
 
 class HitRecord {
 
 public:
     Point p;
     Vector normal;
+    Material *material;
     double t;
     bool front_face;
 

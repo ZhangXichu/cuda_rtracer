@@ -2,6 +2,8 @@
 
 __device__ Hittable** sphere_lst;
 __device__ Hittable* world;
+__device__ Metal* metal;
+__device__ Lambertian* lambertian;
 
 void Camera::initialize()
 {
@@ -35,16 +37,23 @@ __device__ Color Camera::ray_color(curandState* rand_states, int max_depth, cons
 
     HitRecord record;
 
-    Sphere sphere(Point(0, 0, -1), 0.5);
-    Sphere sphere2(Point(0,-100.5,-1), 100);
+    // Sphere sphere(Point(0, 0, -1), 0.5, metal);
+    // Sphere sphere2(Point(0,-100.5,-1), 100, metal);
 
     while (depth < max_depth) {
         
         if (world->hit(current_ray, Interval(0.001, infinity), record))
         {
-            Vector direction = random_on_hemisphere(rand_states, record.normal);
-            current_ray = Ray(record.p, direction);
-            accumulated_color *= 0.5;
+            // Vector direction = record.normal + random_unit_vector(rand_states);
+            // current_ray = Ray(record.p, direction);
+            Ray scattered;
+            Color attenuation;
+            if (record.material->scatter(current_ray, record, attenuation, scattered, rand_states))
+            {
+                accumulated_color = accumulated_color * attenuation;
+                current_ray = scattered;
+            }
+            // accumulated_color *= 0.5;
             
         } else {
             
