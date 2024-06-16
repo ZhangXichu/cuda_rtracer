@@ -38,9 +38,6 @@ __device__ Color Camera::ray_color(curandState* rand_states, int max_depth, cons
 
     HitRecord record;
 
-    // Sphere sphere(Point(0, 0, -1), 0.5, metal);
-    // Sphere sphere2(Point(0,-100.5,-1), 100, metal);
-
     while (depth < max_depth) {
         
         if (world->hit(current_ray, Interval(0.001, infinity), record))

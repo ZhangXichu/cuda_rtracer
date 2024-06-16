@@ -59,6 +59,8 @@ private:
 
 double _refraction_index;
 
+__device__ double reflectance(double cosine, double refraction_index) const;
+
 };
 
 

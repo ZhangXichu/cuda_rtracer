@@ -21,22 +21,25 @@ __global__ void create_world()
 {
     if (threadIdx.x == 0 && blockIdx.x == 0)
     {
-        sphere_lst = (Hittable**)malloc(2 * sizeof(Hittable*));
+        int num_spheres = 3;
+
+        sphere_lst = (Hittable**)malloc(num_spheres * sizeof(Hittable*));
         world = (Hittable*)malloc(sizeof(Hittable*));
 
-        metal = new Metal(Color(0.8, 0.8, 0.8), 0.3);
+        metal = new Metal(Color(184.0/225.0, 115.0/225.0, 51.0/225.0), 0);
         lambertian = new Lambertian(Color(0.8, 0.8, 0.8));
-        dielectric = new Dielectric(1.5);
+        dielectric = new Dielectric(1.0 / 1.33);
 
-        printf("The memory address of metal is: %p\n", (void*)&metal);
+        // printf("The memory address of metal is: %p\n", (void*)&metal);
 
-        sphere_lst[0] = new Sphere(Point(0, 0, -1), 0.5, dielectric);
-        sphere_lst[1] = new Sphere(Point(0,-100.5,-1), 100, lambertian);
+        sphere_lst[0] = new Sphere(Point(0,-100.5,-1.5), 100, lambertian);
+        sphere_lst[1] = new Sphere(Point(-0.51, 0, -1.5), 0.5, metal);
+        sphere_lst[2] = new Sphere(Point(0.51, 0, -1.5), 0.5, dielectric);
 
-        printf("The memory address of sphere1 and sphere2 are: %p, %p\n", (void*)sphere_lst[0], (void*)sphere_lst[1]);
-        printf("Memory address of world: %p\n", (void*)world);
+        // printf("The memory address of sphere1 and sphere2 are: %p, %p\n", (void*)sphere_lst[0], (void*)sphere_lst[1]);
+        // printf("Memory address of world: %p\n", (void*)world);
 
-        world = new HittableList(sphere_lst, 2);
+        world = new HittableList(sphere_lst, num_spheres);
     }
 
 }
