@@ -35,15 +35,31 @@ class Metal : public Material
 {
 
 public:
-    __device__ Metal(const Color& albedo) : _albedo(albedo) {}
-    __device__ bool scatter(const Ray& r_in, const HitRecord& rec, Color& attenuation, Ray& scattered, curandState *state) const override;
+
+__device__ Metal(const Color& albedo, double fuzz) : _albedo(albedo), _fuzz(fuzz < 1 ? fuzz : 1) {}
+__device__ bool scatter(const Ray& r_in, const HitRecord& rec, Color& attenuation, Ray& scattered, curandState *state) const override;
 
 
 private:
     Color _albedo;
+    double _fuzz;
 
 };
 
+class Dielectric : public Material
+{
+
+public:
+
+__device__ Dielectric(double refraction_index) : _refraction_index(refraction_index) {}
+__device__ bool scatter(const Ray& r_in, const HitRecord& rec, Color& attenuation, Ray& scattered, curandState *state) const override;
+
+
+private:
+
+double _refraction_index;
+
+};
 
 
 #endif

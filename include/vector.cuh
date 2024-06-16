@@ -157,6 +157,13 @@ __device__ inline Vector reflect(const Vector& v, const Vector& n) {
     return v - 2*dot(v,n)*n;
 }
 
+__device__ inline Vector refract(const Vector& uv, const Vector& n, double etai_over_etat) {
+    auto cos_theta = fmin(dot(-uv, n), 1.0);
+    Vector r_out_perp =  etai_over_etat * (uv + cos_theta*n);
+    Vector r_out_parallel = -sqrt(fabs(1.0 - r_out_perp.length_squared())) * n;
+    return r_out_perp + r_out_parallel;
+}
+
 using Color = Vector;
 
 #endif
