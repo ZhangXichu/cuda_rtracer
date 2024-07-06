@@ -109,10 +109,12 @@ int main()
     
     camera.aspect_ratio = 16.0 / 9.0;
     camera.img_width = 1200;
-    camera.vfov = 60;
+    camera.vfov = 20;
     camera.lookfrom = Point(-2,2,1);
     camera.lookat   = Point(0,0,-1);
     camera.vup      = Vector(0,1,0);
+    camera.defocus_angle = 10.0;
+    camera.focus_dist    = 3.4;
 
     camera.initialize();
 

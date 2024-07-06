@@ -18,7 +18,8 @@ void Camera::initialize()
     auto focal_length = (lookfrom - lookat).length();
     auto theta = degrees_to_radians(vfov);
     auto h = tan(theta/2);
-    auto viewport_height = 2 * h * focal_length;
+    // auto viewport_height = 2 * h * focal_length;
+    auto viewport_height = 2 * h * focus_dist;
     auto viewport_width = viewport_height * (double(img_width)/_img_height);
 
     // Calculate the u,v,w unit basis vectors for the camera coordinate frame.
@@ -38,8 +39,14 @@ void Camera::initialize()
 
     // auto viewport_upper_left = _camera_center
     //                          - Vector(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
-    auto viewport_upper_left = _camera_center - (focal_length * _w) - viewport_u/2 - viewport_v/2;
+    // auto viewport_upper_left = _camera_center - (focal_length * _w) - viewport_u/2 - viewport_v/2;
+    auto viewport_upper_left = _camera_center - (focus_dist * _w) - viewport_u/2 - viewport_v/2;
     _pixel00_loc = viewport_upper_left + 0.5 * (_pixel_delta_u + _pixel_delta_v);
+
+    // Calculate the camera defocus disk basis vectors.
+    auto defocus_radius = focus_dist * tan(degrees_to_radians(defocus_angle / 2));
+    _defocus_disk_u = _u * defocus_radius;
+    _defocus_disk_v = _v * defocus_radius;
 
     _scene_info = SceneInfo{_pixel00_loc, _camera_center, _pixel_delta_u, _pixel_delta_v};
 }
@@ -88,14 +95,15 @@ __device__ Vector Camera::sample_square(curandState* rand_states) {
 
 __device__ Ray Camera::get_ray(int i, int j, curandState* rand_states)
 {
-    // Construct a camera ray originating from the origin and directed at randomly sampled
-        // point around the pixel location i, j.
+    // Construct a camera ray originating from the defocus disk and directed at a randomly
+        // sampled point around the pixel location i, j.
     auto offset = sample_square(rand_states);
     auto pixel_sample = _scene_info.pixel00_loc
                         + ((i + offset.x()) * _scene_info.pixel_delta_u)
                         + ((j + offset.y()) * _scene_info.pixel_delta_v);
 
-    auto ray_origin = _scene_info.camera_center;
+    // auto ray_origin = _scene_info.camera_center;
+    auto ray_origin = (defocus_angle <= 0) ? _scene_info.camera_center : defocus_disk_sample(rand_states);
     auto ray_direction = pixel_sample - ray_origin;
 
     return Ray(ray_origin, ray_direction);
@@ -109,4 +117,11 @@ int Camera::get_img_height() const
 SceneInfo Camera::get_scene_info() const
 {
     return _scene_info;
+}
+
+__device__ Point Camera::defocus_disk_sample(curandState* rand_states) const 
+{
+    // Returns a random point in the camera defocus disk.
+    auto p = random_in_unit_disk(rand_states);
+    return _scene_info.camera_center + (p.x() * _defocus_disk_u) + (p.y() * _defocus_disk_v);
 }

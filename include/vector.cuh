@@ -141,6 +141,14 @@ __device__ inline Vector random_in_unit_sphere(curandState *state) {
     }
 }
 
+__device__ inline Vector random_in_unit_disk(curandState *state) {
+    while (true) {
+        auto p = Vector(random_double(state, -1,1), random_double(state, -1,1), 0);
+        if (p.length_squared() < 1)
+            return p;
+    }
+}
+
 __device__ inline Vector random_unit_vector(curandState *state) {
     return unit_vector(random_in_unit_sphere(state));
 }
