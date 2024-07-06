@@ -17,7 +17,7 @@ __device__ const double pi = 3.1415926535897932385;
 
 // Utility Functions
 
-__device__ inline double degrees_to_radians(double degrees) {
+__host__ __device__ inline double degrees_to_radians(double degrees) {
     return degrees * pi / 180.0;
 }
 

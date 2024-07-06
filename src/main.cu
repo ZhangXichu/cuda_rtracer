@@ -103,10 +103,16 @@ int main()
 
     int samples_per_pixel = 50; 
 
+    auto R = cos(pi/4);
+
     Camera camera;
     
     camera.aspect_ratio = 16.0 / 9.0;
     camera.img_width = 1200;
+    camera.vfov = 60;
+    camera.lookfrom = Point(-2,2,1);
+    camera.lookat   = Point(0,0,-1);
+    camera.vup      = Vector(0,1,0);
 
     camera.initialize();
 
