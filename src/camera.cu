@@ -27,9 +27,6 @@ void Camera::initialize()
     _u = unit_vector(cross(vup, _w));
     _v = cross(_w, _u);
 
-    // auto viewport_u = Vector(viewport_width, 0, 0);
-    // auto viewport_v = Vector(0, -viewport_height, 0);
-
     // Calculate the vectors across the horizontal and down the vertical viewport edges.
     Vector viewport_u = viewport_width * _u;    // Vector across viewport horizontal edge
     Vector viewport_v = viewport_height * -_v;  // Vector down viewport vertical edge
@@ -37,9 +34,6 @@ void Camera::initialize()
     _pixel_delta_u = viewport_u / img_width;
     _pixel_delta_v = viewport_v / _img_height;
 
-    // auto viewport_upper_left = _camera_center
-    //                          - Vector(0, 0, focal_length) - viewport_u/2 - viewport_v/2;
-    // auto viewport_upper_left = _camera_center - (focal_length * _w) - viewport_u/2 - viewport_v/2;
     auto viewport_upper_left = _camera_center - (focus_dist * _w) - viewport_u/2 - viewport_v/2;
     _pixel00_loc = viewport_upper_left + 0.5 * (_pixel_delta_u + _pixel_delta_v);
 
@@ -64,7 +58,6 @@ __device__ Color Camera::ray_color(curandState* rand_states, int max_depth, cons
         if (world->hit(current_ray, Interval(0.001, infinity), record))
         {
             // Vector direction = record.normal + random_unit_vector(rand_states);
-            // current_ray = Ray(record.p, direction);
             Ray scattered;
             Color attenuation;
             if (record.material->scatter(current_ray, record, attenuation, scattered, rand_states))
@@ -72,7 +65,6 @@ __device__ Color Camera::ray_color(curandState* rand_states, int max_depth, cons
                 accumulated_color = accumulated_color * attenuation;
                 current_ray = scattered;
             }
-            // accumulated_color *= 0.5;
             
         } else {
             
