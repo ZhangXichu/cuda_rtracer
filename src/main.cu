@@ -17,29 +17,76 @@ __global__ void setup_kernel(curandState *state, unsigned long seed) {
 
 // reference https://docs.nvidia.com/cuda/archive/12.0.1/cuda-c-programming-guide/index.html#dynamic-global-memory-allocation-and-operations
 // section 7.34
-__global__ void create_world()
+__global__ void create_world(curandState* rand_states)
 {
     if (threadIdx.x == 0 && blockIdx.x == 0)
     {
-        int num_spheres = 3;
+        int num_spheres = 120;
 
         sphere_lst = (Hittable**)malloc(num_spheres * sizeof(Hittable*));
         world = (Hittable*)malloc(sizeof(Hittable*));
 
-        metal = new Metal(Color(184.0/225.0, 115.0/225.0, 51.0/225.0), 0);
-        lambertian = new Lambertian(Color(0.8, 0.8, 0.8));
-        dielectric = new Dielectric(1.0 / 1.33);
+        ground = new Lambertian(Color(0.5, 0.5, 0.5));
+        sphere_lst[0] = new Sphere(Point(0,-1000,0), 1000, ground);  // ground
 
-        // printf("The memory address of metal is: %p\n", (void*)&metal);
+        material1 = new Dielectric(1.5);
+        sphere_lst[1] = new Sphere(Point(0, 1, 0), 1, material1);
 
-        sphere_lst[0] = new Sphere(Point(0,-100.5,-1.5), 100, lambertian);
-        sphere_lst[1] = new Sphere(Point(-0.51, 0, -1.5), 0.5, metal);
-        sphere_lst[2] = new Sphere(Point(0.51, 0, -1.5), 0.5, dielectric);
+        material2 = new Lambertian(Color(0.4, 0.2, 0.1));
+        sphere_lst[2] = new Sphere(Point(-4, 1, 0), 1, material2);
 
-        // printf("The memory address of sphere1 and sphere2 are: %p, %p\n", (void*)sphere_lst[0], (void*)sphere_lst[1]);
-        // printf("Memory address of world: %p\n", (void*)world);
+        material3 = new Metal(Color(184.0/225.0, 115.0/225.0, 51.0/225.0), 0);
+        sphere_lst[3] = new Sphere(Point(4, 1, 0), 1, material3);
 
-        world = new HittableList(sphere_lst, num_spheres);
+        int index = 4;
+
+        for (int a = -11; a < 11; a+=2)
+        {
+            for (int b = -11; b < 11; b+=2) 
+            {
+                auto choose_mat = random_double(rand_states);
+
+                Point center(a + 1.9*random_double(rand_states), 0.2, b + 1.9*random_double(rand_states));
+
+                if ((center - Point(4, 0.2, 0)).length() > 0.9) 
+                {
+                    Material* material;
+
+                    if (choose_mat < 0.3) 
+                    {
+                        auto albedo = random_vec(rand_states) * random_vec(rand_states);
+                        
+                        material = new Lambertian(albedo);
+                        sphere_lst[index] = new Sphere(center, 0.2, material);
+                        index += 1;
+                    } else if (choose_mat < 0.6) 
+                    {
+                        auto albedo = random_vec(rand_states, 0.5, 1);
+                        auto fuzz = random_double(rand_states, 0, 0.5);
+
+                        material = new Metal(albedo, fuzz);
+                        sphere_lst[index] = new Sphere(center, 0.2, material);
+                        index += 1;
+                        
+                    } else {
+                        material = new Dielectric(1.5);
+                        sphere_lst[index] = new Sphere(center, 0.2, material);
+                        index += 1;
+                    }
+                }
+
+                if (index >= num_spheres - 1) {
+                    break;
+                }
+            }
+            if (index >= num_spheres - 1) {
+                    break;
+                }
+
+        }
+
+
+        world = new HittableList(sphere_lst, index);
     }
 
 }
@@ -109,12 +156,12 @@ int main()
     
     camera.aspect_ratio = 16.0 / 9.0;
     camera.img_width = 1200;
-    camera.vfov = 20;
-    camera.lookfrom = Point(-2,2,1);
-    camera.lookat   = Point(0,0,-1);
+    camera.vfov = 23;
+    camera.lookfrom = Point(13,3,5);
+    camera.lookat   = Point(0,0,0);
     camera.vup      = Vector(0,1,0);
-    camera.defocus_angle = 10.0;
-    camera.focus_dist    = 3.4;
+    camera.defocus_angle = 0.1;
+    camera.focus_dist    = 11.0;
 
     camera.initialize();
 
@@ -143,7 +190,7 @@ int main()
 
     setup_kernel<<<num_blocks, num_threads>>>(rand_states, time(0));
 
-    create_world<<<1,1>>>();
+    create_world<<<1,1>>>(rand_states);
 
     write_img<<<dim_grid, dim_block>>>(d_img, camera, samples_per_pixel, rand_states);
 
