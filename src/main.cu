@@ -26,16 +26,16 @@ __global__ void create_world(curandState* rand_states)
         sphere_lst = (Hittable**)malloc(num_spheres * sizeof(Hittable*));
         world = (Hittable*)malloc(sizeof(Hittable*));
 
-        ground = new Lambertian(Color(0.5, 0.5, 0.5));
+        Material* ground = new Lambertian(Color(0.5, 0.5, 0.5));
         sphere_lst[0] = new Sphere(Point(0,-1000,0), 1000, ground);  // ground
 
-        material1 = new Dielectric(1.5);
+        Material* material1 = new Dielectric(1.5);
         sphere_lst[1] = new Sphere(Point(0, 1, 0), 1, material1);
 
-        material2 = new Lambertian(Color(0.4, 0.2, 0.1));
+        Material* material2 = new Lambertian(Color(0.4, 0.2, 0.1));
         sphere_lst[2] = new Sphere(Point(-4, 1, 0), 1, material2);
 
-        material3 = new Metal(Color(184.0/225.0, 115.0/225.0, 51.0/225.0), 0);
+        Material* material3 = new Metal(Color(184.0/225.0, 115.0/225.0, 51.0/225.0), 0);
         sphere_lst[3] = new Sphere(Point(4, 1, 0), 1, material3);
 
         int index = 4;

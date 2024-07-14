@@ -2,11 +2,6 @@
 
 __device__ Hittable** sphere_lst;
 __device__ Hittable* world;
-__device__ Lambertian* ground;
-__device__ Metal* material3;
-__device__ Lambertian* material2;
-__device__ Dielectric* material1;
-__device__ Material* material;
 
 void Camera::initialize()
 {
