@@ -21,7 +21,7 @@ __global__ void create_world(curandState* rand_states)
 {
     if (threadIdx.x == 0 && blockIdx.x == 0)
     {
-        int num_spheres = 120;
+        int num_spheres = 190;
 
         sphere_lst = (Hittable**)malloc(num_spheres * sizeof(Hittable*));
         world = (Hittable*)malloc(sizeof(Hittable*));
@@ -40,26 +40,27 @@ __global__ void create_world(curandState* rand_states)
 
         int index = 4;
 
-        for (int a = -11; a < 11; a+=2)
+        for (int a = -7; a < 7; a+=1.5)
         {
-            for (int b = -11; b < 11; b+=2) 
+            for (int b = -7; b < 7; b+=1.5) 
             {
                 auto choose_mat = random_double(rand_states);
 
-                Point center(a + 1.9*random_double(rand_states), 0.2, b + 1.9*random_double(rand_states));
+                Point center(a + 7.5*random_double(rand_states), 0.2, b + 7.5*random_double(rand_states));
 
                 if ((center - Point(4, 0.2, 0)).length() > 0.9) 
                 {
                     Material* material;
 
-                    if (choose_mat < 0.3) 
+                    if (choose_mat < 0.5) 
                     {
                         auto albedo = random_vec(rand_states) * random_vec(rand_states);
+                        auto center2 = center + Vector(0, random_double(rand_states, 0, 1), 0);
                         
                         material = new Lambertian(albedo);
-                        sphere_lst[index] = new Sphere(center, 0.2, material);
+                        sphere_lst[index] = new Sphere(center, center2, 0.2, material);
                         index += 1;
-                    } else if (choose_mat < 0.6) 
+                    } else if (choose_mat < 0.8) 
                     {
                         auto albedo = random_vec(rand_states, 0.5, 1);
                         auto fuzz = random_double(rand_states, 0, 0.5);

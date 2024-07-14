@@ -99,8 +99,9 @@ __device__ Ray Camera::get_ray(int i, int j, curandState* rand_states)
     // auto ray_origin = _scene_info.camera_center;
     auto ray_origin = (defocus_angle <= 0) ? _scene_info.camera_center : defocus_disk_sample(rand_states);
     auto ray_direction = pixel_sample - ray_origin;
+    auto ray_time = random_double(rand_states);
 
-    return Ray(ray_origin, ray_direction);
+    return Ray(ray_origin, ray_direction, ray_time);
 }
 
 int Camera::get_img_height() const

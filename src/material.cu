@@ -10,7 +10,7 @@ __device__ bool Lambertian::scatter(const Ray& r_in, const HitRecord& rec, Color
         scatter_direction = rec.normal;
     }
 
-    scattered = Ray(rec.p, scatter_direction);
+    scattered = Ray(rec.p, scatter_direction, r_in.time());
     attenuation = _albedo;
     return true;
 }
@@ -19,7 +19,7 @@ __device__ bool Metal::scatter(const Ray& r_in, const HitRecord& rec, Color& att
 {
     Vector reflected = reflect(r_in.direction(), rec.normal);
     reflected = unit_vector(reflected) + (_fuzz * random_unit_vector(state));
-    scattered = Ray(rec.p, reflected);
+    scattered = Ray(rec.p, reflected, r_in.time());
     attenuation = _albedo;
     // return true;
     return (dot(scattered.direction(), rec.normal) > 0);
@@ -43,7 +43,7 @@ __device__ bool Dielectric::scatter(const Ray& r_in, const HitRecord& rec, Color
     else
         direction = refract(unit_direction, rec.normal, ri);
 
-    scattered = Ray(rec.p, direction);
+    scattered = Ray(rec.p, direction, r_in.time());
 
     // Vector refracted = refract(unit_direction, rec.normal, ri);
 
