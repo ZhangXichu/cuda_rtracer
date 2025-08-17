@@ -1,6 +1,6 @@
 #include <camera.cuh>
 
-__device__ Hittable** sphere_lst;
+__device__ Hittable** obj_lst;
 __device__ Hittable* world;
 
 void Camera::initialize()

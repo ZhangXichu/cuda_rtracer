@@ -6,7 +6,7 @@
 #include <hittable.cuh>
 #include <sphere.cuh>
 
-extern __device__ Hittable** sphere_lst;
+extern __device__ Hittable** obj_lst;
 extern __device__ Hittable* world;
 
 struct SceneInfo {

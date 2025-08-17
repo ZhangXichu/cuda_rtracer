@@ -9,85 +9,170 @@
 #include <interval.cuh>
 #include <error_check.cuh>
 #include <camera.cuh>
+#include <triangle.cuh>
+#include <obj_loader.cuh>
 
 __global__ void setup_kernel(curandState *state, unsigned long seed) {
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     curand_init(seed, idx, 0, &state[idx]);
 }
 
+__device__ inline Point vtxf(const float* V, int i) { // fetch vertex
+    return Point((double)V[3*i+0], (double)V[3*i+1], (double)V[3*i+2]);
+}
+
+// yaw rotation around Y
+__device__ inline Point yaw_y(const Point& p, double c, double s) {
+    double x =  p.x()*c + p.z()*s;
+    double z = -p.x()*s + p.z()*c;
+    return Point(x, p.y(), z);
+}
+
 // reference https://docs.nvidia.com/cuda/archive/12.0.1/cuda-c-programming-guide/index.html#dynamic-global-memory-allocation-and-operations
 // section 7.34
-__global__ void create_world(curandState* rand_states)
+__global__ void create_world(curandState* rand_states,
+                             const float* verts, int vcount,
+                             const int3* faces, int fcount,
+                             double scale,      // S
+                             Point translate,   // T
+                             double yaw_deg)    // rotation about Y in degrees
 {
     if (threadIdx.x == 0 && blockIdx.x == 0)
     {
-        int num_spheres = 190;
+        // int num_spheres = 190;
 
-        sphere_lst = (Hittable**)malloc(num_spheres * sizeof(Hittable*));
-        world = (Hittable*)malloc(sizeof(Hittable*));
+        // obj_lst = (Hittable**)malloc(num_spheres * sizeof(Hittable*));
+        // world = (Hittable*)malloc(sizeof(Hittable*));
 
-        Material* ground = new Lambertian(Color(0.5, 0.5, 0.5));
-        sphere_lst[0] = new Sphere(Point(0,-1000,0), 1000, ground);  // ground
+        // Material* ground = new Lambertian(Color(0.5, 0.5, 0.5));
+        // obj_lst[0] = new Sphere(Point(0,-1000,0), 1000, ground);  // ground
 
-        Material* material1 = new Dielectric(1.5);
-        sphere_lst[1] = new Sphere(Point(0, 1, 0), 1, material1);
+        // Material* material1 = new Dielectric(1.5);
+        // obj_lst[1] = new Sphere(Point(0, 1, 0), 1, material1);
 
-        Material* material2 = new Lambertian(Color(0.4, 0.2, 0.1));
-        sphere_lst[2] = new Sphere(Point(-4, 1, 0), 1, material2);
+        // Material* material2 = new Lambertian(Color(0.4, 0.2, 0.1));
+        // obj_lst[2] = new Sphere(Point(-4, 1, 0), 1, material2);
 
-        Material* material3 = new Metal(Color(184.0/225.0, 115.0/225.0, 51.0/225.0), 0);
-        sphere_lst[3] = new Sphere(Point(4, 1, 0), 1, material3);
+        // Material* material3 = new Metal(Color(184.0/225.0, 115.0/225.0, 51.0/225.0), 0);
+        // obj_lst[3] = new Sphere(Point(4, 1, 0), 1, material3);
 
-        int index = 4;
+        // int index = 4;
 
-        for (int a = -7; a < 7; a+=1.5)
-        {
-            for (int b = -7; b < 7; b+=1.5) 
-            {
-                auto choose_mat = random_double(rand_states);
+        // for (int a = -7; a < 7; a+=1.5)
+        // {
+        //     for (int b = -7; b < 7; b+=1.5) 
+        //     {
+        //         auto choose_mat = random_double(rand_states);
 
-                Point center(a + 7.5*random_double(rand_states), 0.2, b + 7.5*random_double(rand_states));
+        //         Point center(a + 7.5*random_double(rand_states), 0.2, b + 7.5*random_double(rand_states));
 
-                if ((center - Point(4, 0.2, 0)).length() > 0.9) 
-                {
-                    Material* material;
+        //         if ((center - Point(4, 0.2, 0)).length() > 0.9) 
+        //         {
+        //             Material* material;
 
-                    if (choose_mat < 0.5) 
-                    {
-                        auto albedo = random_vec(rand_states) * random_vec(rand_states);
-                        auto center2 = center + Vector(0, random_double(rand_states, 0, 1), 0);
+        //             if (choose_mat < 0.5) 
+        //             {
+        //                 auto albedo = random_vec(rand_states) * random_vec(rand_states);
+        //                 auto center2 = center + Vector(0, random_double(rand_states, 0, 1), 0);
                         
-                        material = new Lambertian(albedo);
-                        sphere_lst[index] = new Sphere(center, center2, 0.2, material);
-                        index += 1;
-                    } else if (choose_mat < 0.8) 
-                    {
-                        auto albedo = random_vec(rand_states, 0.5, 1);
-                        auto fuzz = random_double(rand_states, 0, 0.5);
+        //                 material = new Lambertian(albedo);
+        //                 // obj_lst[index] = new Sphere(center, center2, 0.2, material);
+        //                 obj_lst[index] = new Sphere(center, 0.2, material);
+        //                 index += 1;
+        //             } else if (choose_mat < 0.8) 
+        //             {
+        //                 auto albedo = random_vec(rand_states, 0.5, 1);
+        //                 auto fuzz = random_double(rand_states, 0, 0.5);
 
-                        material = new Metal(albedo, fuzz);
-                        sphere_lst[index] = new Sphere(center, 0.2, material);
-                        index += 1;
+        //                 material = new Metal(albedo, fuzz);
+        //                 obj_lst[index] = new Sphere(center, 0.2, material);
+        //                 index += 1;
                         
-                    } else {
-                        material = new Dielectric(1.5);
-                        sphere_lst[index] = new Sphere(center, 0.2, material);
-                        index += 1;
-                    }
-                }
+        //             } else {
+        //                 material = new Dielectric(1.5);
+        //                 obj_lst[index] = new Sphere(center, 0.2, material);
+        //                 index += 1;
+        //             }
+        //         }
 
-                if (index >= num_spheres - 1) {
-                    break;
-                }
-            }
-            if (index >= num_spheres - 1) {
-                    break;
-                }
+        //         if (index >= num_spheres - 1) {
+        //             break;
+        //         }
+        //     }
+        //     if (index >= num_spheres - 1) {
+        //             break;
+        //         }
 
+        // }
+
+
+        // world = new HittableList(obj_lst, index);
+
+
+
+        ////////////// Triangle Example //////////////
+
+        // int index = 1;
+
+        // int num_obj = 2;
+
+        // obj_lst = (Hittable**)malloc(num_obj * sizeof(Hittable*));
+        
+        // obj_lst[0] = new Sphere(Point(0,-1000,0), 1000, new Lambertian(Color(0.5,0.5,0.5)));
+
+        // Material* tri = new Lambertian(Color(0.9, 0.1, 0.1));
+        // Point v0(-0.8,  -0.4, -1.5);
+        // Point v1( 0.8,  -0.4, -1.5);
+        // Point v2( 0.0,   0.8, -1.5);
+        // obj_lst[index++] = new Triangle(v0, v1, v2, tri);
+
+        // world = new HittableList(obj_lst, index);
+
+        ////////////// Triangle Example //////////////
+
+        // Reserve: ground + all triangles
+        const int num_max = 1 + fcount;
+        obj_lst = (Hittable**)malloc(num_max * sizeof(Hittable*));
+
+        // Ground
+        obj_lst[0] = new Sphere(Point(0,-1000,0), 1000, new Lambertian(Color(0.5,0.5,0.5)));
+        int index = 1;
+
+        // Place/rotate params
+        const double rad = yaw_deg * (pi/180.0);
+        const double c = cos(rad), s = sin(rad);
+
+        Material* tea_mat = new Lambertian(Color(0.75, 0.72, 0.68)); // clay-ish
+
+        // Build triangles
+        for (int f = 0; f < fcount && index < num_max; ++f) {
+            int3 tri = faces[f];
+            if (tri.x < 0 || tri.y < 0 || tri.z < 0 ||
+                tri.x >= vcount || tri.y >= vcount || tri.z >= vcount) continue;
+
+            Point a = vtxf(verts, tri.x);
+            Point b = vtxf(verts, tri.y);
+            Point c0 = vtxf(verts, tri.z);
+
+            // scale
+            a = Point(a.x()*scale,  a.y()*scale,  a.z()*scale);
+            b = Point(b.x()*scale,  b.y()*scale,  b.z()*scale);
+            c0 = Point(c0.x()*scale, c0.y()*scale, c0.z()*scale);
+
+            // yaw
+            a = yaw_y(a, c, s);
+            b = yaw_y(b, c, s);
+            c0 = yaw_y(c0,c, s);
+
+            // translate
+            a = a + translate;
+            b = b + translate;
+            c0 = c0+ translate;
+
+            obj_lst[index++] = new Triangle(a, b, c0, tea_mat);
         }
 
-
-        world = new HittableList(sphere_lst, index);
+        world = new HittableList(obj_lst, index);
     }
 
 }
@@ -96,7 +181,7 @@ __global__ void free_world()
 {
     if (threadIdx.x == 0 && blockIdx.x == 0)
     {
-        free(sphere_lst);
+        free(obj_lst);
     }
 }
 
@@ -149,6 +234,9 @@ int main()
 
     cudaDeviceSetLimit(cudaLimitStackSize, 131070);
 
+    size_t heapBytes = 256 * 1024 * 1024; // 256 MB
+    cudaDeviceSetLimit(cudaLimitMallocHeapSize, heapBytes);
+
     int samples_per_pixel = 50; 
 
     auto R = cos(pi/4);
@@ -191,12 +279,38 @@ int main()
 
     setup_kernel<<<num_blocks, num_threads>>>(rand_states, time(0));
 
-    create_world<<<1,1>>>(rand_states);
+    /////////////// teapot ///////////////
+    // --- Load OBJ on host ---
+    ObjLoader teapot;
+    if (!teapot.load("/mnt/workspace/obj/teapot.obj")) {  // <- adjust path
+        std::cerr << "Failed to load teapot.obj\n";
+        return 1;
+    }
+    teapot.normalize();
+
+    // Upload to device (Unified Memory)
+    float* d_vertices = nullptr;
+    int3*  d_faces    = nullptr;
+    int    vcount = 0, fcount = 0;
+    teapot.upload_to_device(d_vertices, vcount, d_faces, fcount);
+
+    // Optional placement: size & pose in your scene
+    double S = 2.5;                      // try 2–3
+    Point  T(0.0, 0.4, -3.0);            // lift + push forward
+    double yaw_deg = 0.0;                // try 90.0 if facing sideways
+
+    // --- Build world with teapot ---
+    create_world<<<1,1>>>(rand_states, d_vertices, vcount, d_faces, fcount, S, T, yaw_deg);
+    
+    GPU_ERR_CHECK(cudaGetLastError());
+    GPU_ERR_CHECK(cudaDeviceSynchronize());
+    /////////////// teapot ///////////////
+
+    // create_world<<<1,1>>>(rand_states);
 
     write_img<<<dim_grid, dim_block>>>(d_img, camera, samples_per_pixel, rand_states);
 
     GPU_ERR_CHECK(cudaDeviceSynchronize());
-
     GPU_ERR_CHECK(cudaMemcpy(h_img.data, d_img.data, size, cudaMemcpyDeviceToHost));
 
     std::ofstream ofs("../output/output.ppm", std::ios::out | std::ios::binary);
@@ -213,6 +327,8 @@ int main()
 
     cudaFree(d_img.data);
     cudaFree(rand_states);
+    cudaFree(d_vertices);
+    cudaFree(d_faces);
     delete[] h_img.data;
 
     return 0;
