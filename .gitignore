@@ -31,4 +31,8 @@
 *.out
 *.app
 
+output/*
+!output/img/
+!output/img/*
+
 build
