@@ -24,7 +24,8 @@ target_sources(rtracer
                 src/interval.cu
                 src/camera.cu
                 src/material.cu
-                src/triangle.cu)
+                src/triangle.cu
+                src/obj_loader.cu)
 
 set_target_properties(rtracer PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
