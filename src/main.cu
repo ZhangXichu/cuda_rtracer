@@ -243,14 +243,29 @@ int main()
 
     Camera camera;
     
+    // camera.aspect_ratio = 16.0 / 9.0;
+    // camera.img_width = 1200;
+    // camera.vfov = 23;  
+    // camera.lookfrom = Point(13,3,5);
+    // camera.lookat   = Point(0,0,0);
+    // camera.vup      = Vector(0,1,0);
+    // camera.defocus_angle = 0.1;
+    // camera.focus_dist    = 3.0;
+
+    ///////////// for teapot ///////////////
     camera.aspect_ratio = 16.0 / 9.0;
     camera.img_width = 1200;
-    camera.vfov = 23;
-    camera.lookfrom = Point(13,3,5);
-    camera.lookat   = Point(0,0,0);
-    camera.vup      = Vector(0,1,0);
-    camera.defocus_angle = 0.1;
-    camera.focus_dist    = 11.0;
+    camera.vfov = 15.0;  
+    camera.lookfrom = Point(8.0, 2.5, 3.0);
+    camera.lookat   = Point(4.0, 1.25, 0.0);
+    camera.vup      = Vector(0.0, 1.0, 0.0);
+    camera.defocus_angle = 0.0;
+
+    const double dx = camera.lookfrom.x() - camera.lookat.x();
+    const double dy = camera.lookfrom.y() - camera.lookat.y();
+    const double dz = camera.lookfrom.z() - camera.lookat.z();
+    camera.focus_dist    = std::sqrt(dx*dx + dy*dy + dz*dz);
+    ///////////// for teapot ///////////////
 
     camera.initialize();
 
